@@ -1362,10 +1362,7 @@ void VanitySearch::FindKeyGPU(TH_PARAM *ph) {
   if (onlyFull) {
     g.SetPrefix(usedPrefixL,nbPrefix);
   } else {
-    if(hasPattern)
-      g.SetPattern(inputPrefixes[0].c_str());
-    else
-      g.SetPrefix(usedPrefix);
+    g.SetPattern(prefixes);
   }
 
   getGPUStartingKeys(thId, g.GetGroupSize(), nbThread, keys, p);
