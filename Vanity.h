@@ -20,6 +20,7 @@
 
 #include <string>
 #include <vector>
+#include "Regex.h"
 #include "SECP256k1.h"
 #include "GPU/GPUEngine.h"
 #ifdef WIN64
@@ -43,7 +44,6 @@ typedef struct {
 
 } TH_PARAM;
 
-
 typedef struct {
 
   char *prefix;
@@ -59,13 +59,6 @@ typedef struct {
 
 } PREFIX_ITEM;
 
-typedef struct {
-
-  std::vector<PREFIX_ITEM> *items;
-  bool found;
-
-} PREFIX_TABLE_ITEM;
-
 class VanitySearch {
 
 public:
@@ -73,6 +66,7 @@ public:
   VanitySearch(Secp256K1 *secp, std::vector<std::string> &prefix, std::string seed, int searchMode,
                bool useGpu,bool stop,std::string outputFile, bool useSSE,uint32_t maxFound,uint64_t rekey,
                bool caseSensitive,Point &startPubKey,bool paranoiacSeed);
+  ~VanitySearch() { FreeRegexData(); }
 
   void Search(int nbThread,std::vector<int> gpuId,std::vector<int> gridSize);
   void FindKeyCPU(TH_PARAM *p);
@@ -96,14 +90,16 @@ private:
   void rekeyRequest(TH_PARAM *p);
   uint64_t getGPUCount();
   uint64_t getCPUCount();
-  bool initPrefix(std::string &prefix, PREFIX_ITEM *it);
+  bool initPrefix(std::string &prefix, PREFIX_ITEM *it, bool has_prefix);
+  void setRegexDifficulty(PREFIX_ITEM* pfix);
   void dumpPrefixes();
   double getDiffuclty();
   void updateFound();
   void getCPUStartingKey(int thId, Int& key, Point& startP);
   void getGPUStartingKeys(int thId, int groupSize, int nbThread, Int *keys, Point *p);
-  void enumCaseUnsentivePrefix(std::string s, std::vector<std::string> &list);
   bool prefixMatch(char *prefix, char *addr);
+  bool HasSpecialCharacters(const std::string& input);
+  void FreeRegexData();
 
   Secp256K1 *secp;
   Int startKey;
@@ -113,7 +109,8 @@ private:
   double startTime;
   int searchType;
   int searchMode;
-  bool hasPattern;
+  // vector<bool> is crazy do not use
+  std::vector<unsigned char> hasPattern;
   bool caseSensitive;
   bool useGpu;
   bool stopWhenFound;
@@ -130,10 +127,11 @@ private:
   uint32_t maxFound;
   double _difficulty;
   bool *patternFound;
-  std::vector<PREFIX_TABLE_ITEM> prefixes;
+  std::vector<PREFIX_ITEM> prefixes;
   std::vector<prefix_t> usedPrefix;
   std::vector<LPREFIX> usedPrefixL;
   std::vector<std::string> &inputPrefixes;
+  std::vector<MRegexp*> Regexps;
 
   Int beta;
   Int lambda;

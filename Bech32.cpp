@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <ctype.h>
+#include <vector>
 
 #include "Bech32.h"
 
@@ -47,6 +48,46 @@ static const int8_t charset_rev[128] = {
     -1, 29, -1, 24, 13, 25,  9,  8, 23, -1, 18, 22, 31, 27, 19, -1,
      1,  0,  3, 16, 11, 28, 12, 14,  6,  4,  2, -1, -1, -1, -1, -1
 };
+
+int numBech32Chars(const char* psz) {
+    std::vector<int> lengths;
+    int len = 0;
+    bool ignore = false;
+    size_t pszl = strlen(psz);
+    for (size_t i = 0; i < pszl; ++i) {
+        if (psz[i] & 0x80) return -1;
+        char c = psz[i];
+        bool first = i == 0;
+        if (c == '[' && !first && psz[i-1] != '\\') {
+            ignore = true;
+            continue;
+        }
+        else if (c == ']' && !first && psz[i-1] != '\\') {
+            ignore = false;
+            ++len;
+            continue;
+        }
+        else if (c == '|' && !first && psz[i-1] != '\\') {
+            lengths.push_back(len);
+            len = 0;
+            continue;
+        }
+        else if ((c == '*' || c == '?') && !first && psz[i-1] != '\\') {
+            --len;
+            continue;
+        }
+        else if (!ignore && charset_rev[c] != -1) {
+            ++len;
+            continue;
+        }
+    }
+    lengths.push_back(len);
+    int min = lengths[0];
+    for (int i = 1; i < lengths.size(); ++i) {
+        if (min > lengths[i]) min = lengths[i];
+    }
+    return min;
+}
 
 int bech32_encode(char *output, const char *hrp, const uint8_t *data, size_t data_len) {
   uint32_t chk = 1;

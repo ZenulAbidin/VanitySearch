@@ -38,7 +38,7 @@ void printUsage() {
   printf("             [-o outputfile] [-m maxFound] [-ps seed] [-s seed] [-t nbThread]\n");
   printf("             [-nosse] [-r rekey] [-check] [-kp] [-sp startPubKey]\n");
   printf("             [-rp privkey partialkeyfile] [prefix]\n\n");
-  printf(" prefix: prefix to search (Can contains wildcard '?' or '*')\n");
+  printf(" prefix: prefix to search (Can be a regex - see README for details)\n");
   printf(" -v: Print version\n");
   printf(" -u: Search uncompressed addresses\n");
   printf(" -b: Search both uncompressed or compressed addresses\n");
@@ -532,12 +532,9 @@ int main(int argc, char* argv[]) {
       a++;
     } else if (strcmp(argv[a], "-h") == 0) {
       printUsage();
-    } else if (a == argc - 1) {
+    } else {
       prefix.push_back(string(argv[a]));
       a++;
-    } else {
-      printf("Unexpected %s argument\n",argv[a]);
-      exit(-1);
     }
 
   }

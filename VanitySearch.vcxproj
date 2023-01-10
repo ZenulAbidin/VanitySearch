@@ -34,6 +34,7 @@
     <ClInclude Include="SECP256k1.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Vanity.h" />
+    <ClInclude Include="Regex.h" />
     <ClInclude Include="Wildcard.h" />
   </ItemGroup>
   <ItemGroup>
@@ -55,6 +56,7 @@
     <ClCompile Include="Random.cpp" />
     <ClCompile Include="SECP256K1.cpp" />
     <ClCompile Include="Timer.cpp" />
+    <ClCompile Include="Regex.cpp" />
     <ClCompile Include="Vanity.cpp" />
   </ItemGroup>
   <ItemGroup>

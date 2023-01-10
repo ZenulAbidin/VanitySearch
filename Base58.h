@@ -45,5 +45,11 @@ bool DecodeBase58(const char* psz, std::vector<unsigned char>& vchRet);
  */
 bool DecodeBase58(const std::string& str, std::vector<unsigned char>& vchRet);
 
+/**
+ * Returns the number of base58 characters in a string. Regex-aware, and
+ * can intelligently detect character classes and alternators.
+ */
+int numBase58Chars(const char* psz);
+
 
 #endif // BASE58_H

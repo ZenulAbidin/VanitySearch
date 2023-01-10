@@ -100,4 +100,10 @@ int bech32_decode(
 
 int bech32_decode_nocheck(uint8_t *data, size_t *data_len, const char *input);
 
+/**
+ * Returns the number of bech32 characters in a string. Regex-aware, and
+ * can intelligently detect character classes and alternators.
+ */
+int numBech32Chars(const char* psz);
+
 #endif

@@ -33,7 +33,7 @@ VanitySearch [-check] [-v] [-u] [-b] [-c] [-gpu] [-stop] [-i inputfile]
              [-nosse] [-r rekey] [-check] [-kp] [-sp startPubKey]
              [-rp privkey partialkeyfile] [prefix]
 
- prefix: prefix to search (Can contains wildcard '?' or '*')
+ prefix: prefix to search (Can be a regex - see below)
  -v: Print version
  -u: Search uncompressed addresses
  -b: Search both uncompressed or compressed addresses
@@ -104,6 +104,24 @@ Pub Addr: bc1quantum898l8mx5pkvq2x250kkqsj7enpx3u4yt
 Priv (WIF): p2wpkh:L37xBVcFGeAZ9Tii7igqXBWmfiBhiwwiKQmchNXPV2LNREXQDLCp
 Priv (HEX): 0xB00FD8CDA85B11D4744C09E65C527D35E2B1D19095CFCA0BF2E48186F31979C2
 ```
+
+# Regex Cheatsheet
+| Metacharacter | Description |
+|:--:|:--:|
+| c | Most characters (like c) match themselve literally |
+| \c | Some characters are used as metacharacters. To use them literally escape them |
+| \n \t \r | newline, tab, carriage return |
+| \d \s \w | digit, whitespace, alphanumeric character (a-z, A-Z, 0-9 and _) |
+| \D \S \W | do not match the groups described above |
+| . | Matches any character (including newline) |
+| * | Matches the preceding token as often as possible |
+| ? | Matches the preceding token at most once (i.e. zero or one times) |
+| + | Matches the preceding token at least once and as often as possible |
+| {m,n} | Matches the preceding token at least m times and at most n times. m and n may be ommited to ignore the min or max value. |
+| (c) | Matches the expression inside the parentheses. |
+| [c] | Matches all characters inside the brackets. Ranges like a-z may also be used |
+| [^c] | Does not match the characters inside the bracket. |
+| \| | Matches either the expression before the \| or the expression after it |
 
 # Generate a vanity address for a third party using split-key
 

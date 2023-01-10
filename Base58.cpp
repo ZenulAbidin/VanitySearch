@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <string.h>
 #include <cstdint>
+#include <vector>
 
 /** All alphanumeric characters except for "0", "I", "O", and "l" */
 static const char* pszBase58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
@@ -34,6 +35,46 @@ static const int8_t b58digits_map[] = {
 	-1,33,34,35,36,37,38,39, 40,41,42,43,-1,44,45,46,
 	47,48,49,50,51,52,53,54, 55,56,57,-1,-1,-1,-1,-1,
 };
+
+int numBase58Chars(const char* psz) {
+    std::vector<int> lengths;
+    int len = 0;
+    bool ignore = false;
+    size_t pszl = strlen(psz);
+    for (size_t i = 0; i < pszl; ++i) {
+        if (psz[i] & 0x80) return -1;
+        char c = psz[i];
+        bool first = i == 0;
+        if (c == '[' && !first && psz[i-1] != '\\') {
+            ignore = true;
+            continue;
+        }
+        else if (c == ']' && !first && psz[i-1] != '\\') {
+            ignore = false;
+            ++len;
+            continue;
+        }
+        else if (c == '|' && !first && psz[i-1] != '\\') {
+            lengths.push_back(len);
+            len = 0;
+            continue;
+        }
+        else if ((c == '*' || c == '?') && !first && psz[i-1] != '\\') {
+            --len;
+            continue;
+        }
+        else if (!ignore && b58digits_map[c] != -1) {
+            ++len;
+            continue;
+        }
+    }
+    lengths.push_back(len);
+    int min = lengths[0];
+    for (int i = 1; i < lengths.size(); ++i) {
+        if (min > lengths[i]) min = lengths[i];
+    }
+    return min;
+}
 
 bool DecodeBase58(const char* psz, std::vector<uint8_t> &vch) {
 
