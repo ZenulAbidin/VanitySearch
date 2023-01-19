@@ -34,7 +34,7 @@ endif
 CC	   = gcc
 CXX        = g++
 CUDA       = /usr/local/cuda-10.0
-CXXCUDA    = /usr/bin/g++6
+CXXCUDA    = /usr/bin/g++-6
 NVCC       = /usr/bin/nvcc
 # nvcc requires joint notation w/o dot, i.e. "5.2" -> "52"
 ccap       = $(shell echo $(CCAP) | tr -d '.')
