@@ -383,8 +383,7 @@ void GPUEngine::SetPrefix(std::vector<prefix_t> prefixes) {
 
 }
 
-void GPUEngine::SetPattern(const char *pattern, int nprefixes, uint64_t isregex);
-
+void GPUEngine::SetPattern(const char *pattern, int nprefixes, uint64_t isregex) {
   nPrefixes = nprefixes;
   isRegex = isregex;
   strcpy((char *)inputPrefixPinned,pattern);
