@@ -1375,7 +1375,7 @@ void VanitySearch::FindKeyGPU(TH_PARAM *ph) {
         isRegex |= ((bool) hasPattern[i]) << i;
         i++;
     }
-    g.SetPattern(prefixes, i, isRegex);
+    g.SetPattern(prefixArray, i, isRegex);
   }
 
   getGPUStartingKeys(thId, g.GetGroupSize(), nbThread, keys, p);
