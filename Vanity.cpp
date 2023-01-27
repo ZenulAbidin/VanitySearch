@@ -1367,11 +1367,11 @@ void VanitySearch::FindKeyGPU(TH_PARAM *ph) {
      * <This should not be a problem because addresses are about half
      * of this length>
      */
-    char* prefixArray = calloc(64*64, sizeof(char));
+    char* prefixArray = (char*) calloc(64*64, sizeof(char));
     int i = 0;
     uint64_t isRegex;
     for (auto prfix: prefixes) {
-        strncpy(prefixArray+(i*64), prefixes[i].c_str(), 64);
+        strncpy(prefixArray+(i*64), prefixes[i].prefix, 64);
         isRegex |= ((bool) hasPattern[i]) << i;
         i++;
     }
