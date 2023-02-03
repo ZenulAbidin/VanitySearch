@@ -125,7 +125,8 @@ typedef struct {
 typedef struct {
 	GenericNode generic;
 	union RegexNode *subexp;
-	size_t min, max;
+	size_t min, max, omax /* original maximum */;
+        size_t current;
 } QuantNode;
 
 typedef struct {
@@ -161,15 +162,75 @@ typedef union RegexNode {
 	OrNode or;
 } RegexNode;
 
+static bool quant_is_match(RegexNode *node, const char *orig, const char *cur,
+			   const char **next);
+
 static bool is_match(RegexNode *node, const char *orig, const char *cur,
 		     const char **next)
 {
+        QuantNode *qnodes, *qnode;
+        RegexNode *rnode;
+        size_t i = 0, l = 0;
 	if (node == NULL) {
 		*next = cur;
 		return true;
 	} else {
-		return ((node->generic.match)(node, orig, cur, next)) &&
-		       is_match(node->generic.next, orig, *next, next);
+try_again:
+                qnodes = NULL;
+                i = 0;
+                l = 0;
+		bool matches1 = ((node->generic.match)(node, orig, cur, next));
+                bool matches2 = is_match(node->generic.next, orig, *next, next);
+                bool matches = matches1 && matches2;
+                /* matches2 will fail if the first match was a quantity match against an empty string.
+                 * So check for that here.
+                 */
+                if (!matches2 && node->generic.match == quant_is_match &&
+                        node->quant.max == node->quant.current) {
+                    matches2 = is_match(node->generic.next, orig, cur, next);
+                    matches = matches1 && matches2;
+                }
+                if (!matches) {
+                    /* Look for the most recent value quant node and try to match
+                     * it again but with one less character */
+                    rnode = node;
+                    while (true) {
+                        if (rnode->generic.match == quant_is_match) {
+                            qnode = &rnode->quant;
+                            qnodes = qnode;
+                            ++i;
+                            ++l;
+                        }
+                        /* Finite state automations have the node immediately previously
+                         * used, as the next node. */
+                        if (rnode->generic.next != NULL) {
+                            rnode = rnode->generic.next; 
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                    for (i = l; i > 0; i--) {
+                        /* i is size_t, so it can't go negative. That's why it's not allowed to go below 1
+                         * and to get the correct node we just subtract 1. */
+                        qnode = qnodes + (i-1);
+                        /* If there is a quant node that has characters to give away
+                         * (a pun on the greediness of quantifier matching),
+                         * go back to that matching but with one less character.
+                         */
+                        if (qnode->max >= qnode->min && qnode->current < qnode->max - qnode->min) {
+                            qnode->current++;
+                            goto try_again;
+                        }
+                        else {
+                            //qnode->current = 0;
+                        }
+                    }
+                    return false; /* No quant nodes with chars to give away. */
+                }
+                else {
+                    return true;
+                }
 	}
 }
 
@@ -219,14 +280,25 @@ static bool any_is_match(RegexNode *node, const char *orig, const char *cur,
 static bool quant_is_match(RegexNode *node, const char *orig, const char *cur,
 			   const char **next)
 {
-	QuantNode *quant = (QuantNode *)node;
-	size_t matches = 0;
+	QuantNode *quant = (QuantNode *) node;
+        /* First reset the maximum back to the original value */
+        quant->max = quant->omax;
 
+        /* Required for backtracking - if the maximum allowed chars is less
+         * than the number of characters left, then lower the maximum to that.
+         */
+        size_t lcur = strlen(cur);
+	size_t matches = 0;
+        if (quant->max > lcur) quant->max = lcur;
+
+
+        if (quant->max == quant->current) return true;
+        else if (quant->current > quant->max - quant->min) return false;
 	while (is_match(quant->subexp, orig, cur, next)) {
 		matches++;
 		cur = *next;
 
-		if (matches >= quant->max)
+		if (matches >= quant->max - quant->current)
 			break;
 	}
 
@@ -431,7 +503,9 @@ static void append_quant(RegexNode **prev, RegexNode *cur, size_t min,
 	cur->generic.prev = NULL;
 
 	cur->quant.max = max;
+	cur->quant.omax = max;
 	cur->quant.min = min;
+        cur->quant.current = 0;
 	cur->quant.subexp = *prev;
 
 	*prev = (*prev)->generic.prev;
@@ -892,6 +966,8 @@ MRegexpError mregexp_error(void)
 
 bool mregexp_match(MRegexp *re, const char *s, MRegexpMatch *m)
 {
+        bool matchd = false;
+        RegexNode* node;
 	clear_compile_exception();
 
 	if (re == NULL || s == NULL || m == NULL) {
@@ -903,15 +979,23 @@ bool mregexp_match(MRegexp *re, const char *s, MRegexpMatch *m)
 	m->match_end = __SIZE_MAX__;
 
 	for (const char *tmp_s = s; *tmp_s; tmp_s = utf8_next(tmp_s)) {
-		const char *next = NULL;
-		if (is_match(re->nodes, s, tmp_s, &next)) {
-			m->match_begin = tmp_s - s;
-			m->match_end = next - s;
-			return true;
-		}
+            const char *next = NULL;
+            if (is_match(re->nodes, s, tmp_s, &next)) {
+                    m->match_begin = tmp_s - s;
+                    m->match_end = next - s;
+                    matchd = true;
+                    break;
+            }
+            for (node = re->nodes; node != NULL; node = node->generic.next) {
+                if (node->generic.match == quant_is_match) {
+                    node->quant.current = 0;
+                    node->quant.max = node->quant.omax;
+                }
+            }
 	}
 
-	return false;
+
+	return matchd;
 }
 
 void mregexp_free(MRegexp *re)
