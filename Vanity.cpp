@@ -1362,6 +1362,9 @@ void VanitySearch::FindKeyGPU(TH_PARAM *ph) {
   if (onlyFull) {
     g.SetPrefix(usedPrefixL,nbPrefix);
   } else {
+    g.SetPrefix(usedPrefix);
+//Mind=blown. This causes the 5x slowdown!
+/*
     string allPrefixes;
     int i = 0;
     for (i = 0; i < inputPrefixes.size(); i++) {
@@ -1376,6 +1379,7 @@ void VanitySearch::FindKeyGPU(TH_PARAM *ph) {
         inputPrefixes.push_back(allPrefixes);
         hasPattern.push_back(true);
     }
+*/
   }
 
   getGPUStartingKeys(thId, g.GetGroupSize(), nbThread, keys, p);
