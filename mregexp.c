@@ -292,7 +292,7 @@ static bool quant_is_match(RegexNode *node, const char *orig, const char *cur,
         if (quant->max > lcur) quant->max = lcur;
 
 
-        if (quant->max == quant->current) return true;
+        //if (quant->max == quant->current) return true;
         else if (quant->current > quant->max - quant->min) return false;
 	while (is_match(quant->subexp, orig, cur, next)) {
 		matches++;
