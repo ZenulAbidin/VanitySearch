@@ -1364,7 +1364,7 @@ void VanitySearch::FindKeyGPU(TH_PARAM *ph) {
   } else {
     string allPrefixes;
     int i = 0;
-    for (i = 0; inputPrefixes.size(); i++) {
+    for (i = 0; i < inputPrefixes.size(); i++) {
 	auto pfix = inputPrefixes[i];
         allPrefixes += pfix + "|";
     }
