@@ -63,7 +63,7 @@ public:
   bool SetKeys(Point *p);
   void SetSearchMode(int searchMode);
   void SetSearchType(int searchType);
-  void SetPattern(const char *pattern, int nprefixes, uint64_t isregex);
+  void SetPattern(const char *pattern);
   bool Launch(std::vector<ITEM> &prefixFound,bool spinWait=false);
   int GetNbThread();
   int GetGroupSize();
@@ -101,8 +101,6 @@ private:
   uint32_t outputSize;
   std::string pattern;
   bool hasPattern;
-  uint64_t isRegex;
-  int nPrefixes;
 
 };
 
