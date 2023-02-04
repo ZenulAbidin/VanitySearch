@@ -1362,7 +1362,11 @@ void VanitySearch::FindKeyGPU(TH_PARAM *ph) {
   if (onlyFull) {
     g.SetPrefix(usedPrefixL,nbPrefix);
   } else {
-    g.SetPrefix(usedPrefix);
+    if(hasPattern[0])       
+      g.SetPattern(inputPrefixes[0].c_str());
+    else                                                           
+      g.SetPrefix(usedPrefix);                                       
+  } 
 //Mind=blown. This causes the 5x slowdown!
 /*
     string allPrefixes;
