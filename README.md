@@ -3,6 +3,8 @@
 VanitySearch is a bitcoin address prefix finder. If you want to generate safe private keys, use the -s option to enter your passphrase which will be used for generating a base key as for BIP38 standard (*VanitySearch.exe -s "My PassPhrase" 1MyPrefix*). You can also use *VanitySearch.exe -ps "My PassPhrase"* which will add a crypto secure seed to your passphrase.\
 VanitySearch may not compute a good grid size for your GPU, so try different values using -g option in order to get the best performances. If you want to use GPUs and CPUs together, you may have best performances by keeping one CPU core for handling GPU(s)/CPU exchanges (use -t option to set the number of CPU threads).
 
+This build also supports searching for multiple prefixes at once, and Regular Expression prefixes.
+
 # Feature
 
 <ul>
@@ -31,7 +33,7 @@ VanitySearch [-check] [-v] [-u] [-b] [-c] [-gpu] [-stop] [-i inputfile]
              [-gpuId gpuId1[,gpuId2,...]] [-g g1x,g1y,[,g2x,g2y,...]]
              [-o outputfile] [-m maxFound] [-ps seed] [-s seed] [-t nbThread]
              [-nosse] [-r rekey] [-check] [-kp] [-sp startPubKey]
-             [-rp privkey partialkeyfile] [prefix]
+             [-rp privkey partialkeyfile] [-x] [-S | -T | -U] [prefix]
 
  prefix: prefix to search (Can be a regex - see below)
  -v: Print version
@@ -54,6 +56,7 @@ VanitySearch [-check] [-v] [-u] [-b] [-c] [-gpu] [-stop] [-i inputfile]
  -cp privKey: Compute public key (privKey in hex hormat)
  -kp: Generate key pair
  -rp privkey partialkeyfile: Reconstruct final private key(s) from partial key(s) info.
+ -x: enable regular expression support
  -sp startPubKey: Start the search with a pubKey (for private key splitting)
  -r rekey: Rekey interval in MegaKey, default is disabled
 ```
@@ -106,6 +109,10 @@ Priv (HEX): 0xB00FD8CDA85B11D4744C09E65C527D35E2B1D19095CFCA0BF2E48186F31979C2
 ```
 
 # Regex Cheatsheet
+
+VanitySearch is powered by the [mregexp](https://github.com/deinernstjetzt/mregexp) project, which supports the following
+metacharacters:
+
 | Metacharacter | Description |
 |:--:|:--:|
 | c | Most characters (like c) match themselve literally |
@@ -122,6 +129,12 @@ Priv (HEX): 0xB00FD8CDA85B11D4744C09E65C527D35E2B1D19095CFCA0BF2E48186F31979C2
 | [c] | Matches all characters inside the brackets. Ranges like a-z may also be used |
 | [^c] | Does not match the characters inside the bracket. |
 | \| | Matches either the expression before the \| or the expression after it |
+| ^ | Matches the regex at the beginning of the string only |
+| $ | Matches the regex at the end of the string only |
+
+Note: Do not use \|, instead, just pass each prefix as a separate argument delimited by whitespace, and VanitySearch will take care of the details.
+
+You should not ever need to use the whitespace metacharacters, as a Bitcoin address will not contain those.
 
 # Generate a vanity address for a third party using split-key
 

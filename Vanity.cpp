@@ -1362,20 +1362,18 @@ void VanitySearch::FindKeyGPU(TH_PARAM *ph) {
   if (onlyFull) {
     g.SetPrefix(usedPrefixL,nbPrefix);
   } else {
-    /* Hack: We are going to allocate a 64*64 char array for each prefix.
-     * This means that each prefix can be no longer than 64 chars.
-     * <This should not be a problem because addresses are about half
-     * of this length>
-     */
-    char* prefixArray = (char*) calloc(64*64, sizeof(char));
+    string allPrefixes;
     int i = 0;
-    uint64_t isRegex;
-    for (auto prfix: prefixes) {
-        strncpy(prefixArray+(i*64), prefixes[i].prefix, 64);
-        isRegex |= ((bool) hasPattern[i]) << i;
-        i++;
+    for (i = 0; inputPrefixes.size(); i++) {
+	auto pfix = inputPrefixes[i];
+        allPrefixes += pfix + "|";
     }
-    g.SetPattern(prefixArray, i, isRegex);
+    allPrefixes = allPrefixes.substr(0, allPrefixes.length()-1);
+    g.SetPrefix(allPrefixes);
+    if (i > 1) {
+        hasPattern = true;
+        inputPrefixes = allPrefixes;
+    }
   }
 
   getGPUStartingKeys(thId, g.GetGroupSize(), nbThread, keys, p);
