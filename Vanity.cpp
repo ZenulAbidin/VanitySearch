@@ -1372,7 +1372,8 @@ void VanitySearch::FindKeyGPU(TH_PARAM *ph) {
     g.SetPrefix(allPrefixes);
     if (i > 1) {
         hasPattern = true;
-        inputPrefixes = allPrefixes;
+        inputPrefixes.clear()
+        inputPrefixes.push_back(allPrefixes);
     }
   }
 
