@@ -986,6 +986,10 @@ bool mregexp_match(MRegexp *re, const char *s, MRegexpMatch *m)
                     matchd = true;
                     break;
             }
+            if (s[0] == '^') {
+                // It's never going to match if we start at a later character
+                break;
+            }
             for (node = re->nodes; node != NULL; node = node->generic.next) {
                 if (node->generic.match == quant_is_match) {
                     node->quant.current = 0;

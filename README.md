@@ -33,7 +33,7 @@ VanitySearch [-check] [-v] [-u] [-b] [-c] [-gpu] [-stop] [-i inputfile]
              [-gpuId gpuId1[,gpuId2,...]] [-g g1x,g1y,[,g2x,g2y,...]]
              [-o outputfile] [-m maxFound] [-ps seed] [-s seed] [-t nbThread]
              [-nosse] [-r rekey] [-check] [-kp] [-sp startPubKey]
-             [-rp privkey partialkeyfile] [-x] [-S | -T | -U] [prefix]
+             [-rp privkey partialkeyfile] [prefix]
 
  prefix: prefix to search (Can be a regex - see below)
  -v: Print version
@@ -56,7 +56,6 @@ VanitySearch [-check] [-v] [-u] [-b] [-c] [-gpu] [-stop] [-i inputfile]
  -cp privKey: Compute public key (privKey in hex hormat)
  -kp: Generate key pair
  -rp privkey partialkeyfile: Reconstruct final private key(s) from partial key(s) info.
- -x: enable regular expression support
  -sp startPubKey: Start the search with a pubKey (for private key splitting)
  -r rekey: Rekey interval in MegaKey, default is disabled
 ```

@@ -127,6 +127,8 @@ VanitySearch::VanitySearch(Secp256K1 *secp, vector<std::string> &inputPrefixes,s
     hasPattern.push_back(has_pattern);
   }
 
+
+
   // Insert prefixes
   bool loadingProgress = (inputPrefixes.size() > 1000);
   if (loadingProgress)
@@ -326,9 +328,13 @@ bool VanitySearch::initPrefix(std::string &prefix,PREFIX_ITEM *it, bool has_patt
   }
 
   int aType = -1;
+  char starter = prefix.data()[0];
 
-
-  switch (prefix.data()[0]) {
+  if (has_pattern && starter == '^') {
+      starter = prefix.data()[1];
+  }
+      
+  switch (starter) {
   case '1':
     aType = P2PKH;
     break;
@@ -348,6 +354,8 @@ bool VanitySearch::initPrefix(std::string &prefix,PREFIX_ITEM *it, bool has_patt
     return false;
   }
 
+
+  //TODO Do something about this?
   if (searchType == -1) searchType = aType;
   if (aType != searchType) {
     printf("Ignoring prefix \"%s\" (P2PKH, P2SH or BECH32 allowed at once)\n", prefix.c_str());
