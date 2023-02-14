@@ -20,6 +20,7 @@
 * SOFTWARE.
 */
 
+#include <immintrin.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -124,6 +125,11 @@ typedef struct {
 
 typedef struct {
 	GenericNode generic;
+	uint8_t chr[16]; // SSE2 enables at most 16 contiguous chars ('\0' indicates not available position)
+} Char16Node;
+
+typedef struct {
+	GenericNode generic;
 	union RegexNode *subexp;
 	size_t min, max, omax /* original maximum */;
         size_t current;
@@ -155,6 +161,7 @@ typedef struct {
 typedef union RegexNode {
 	GenericNode generic;
 	CharNode chr;
+        Char16Node chr16;
 	QuantNode quant;
 	ClassNode cls;
 	RangeNode range;
@@ -241,8 +248,29 @@ static bool char_is_match(RegexNode *node, const char *orig, const char *cur,
 		return false;
 	}
 
-	*next = utf8_next(cur);
-	return node->chr.chr == utf8_peek(cur);
+	*next = cur + 1;
+	return node->chr.chr == *cur;
+}
+
+// It technically works but it does not result in a performance improvement.
+// Intel has no instruction for "AND all bytes inside a single XMM" forcing
+// me to make many unnecessary OR instructions...
+static bool char16_is_match(RegexNode *node, const char *orig, const char *cur,
+			  const char **next)
+{
+        Char16Node char16 = node->chr16;
+        int result;
+        __m128i xmm0, xmm1, xmm2;
+
+        *next = cur+16;
+        xmm0 = _mm_loadu_si128((__m128i*) char16.chr);
+        xmm1 = _mm_loadu_si128((__m128i*) cur);
+        xmm2 = _mm_cmpeq_epi8(xmm0, xmm1);
+        result = xmm2[0] & xmm2[1] & xmm2[2] & xmm2[3] & xmm2[4] & xmm2[5] & xmm2[6]
+            & xmm2[7] & xmm2[8] & xmm2[9] & xmm2[10] & xmm2[11] & xmm2[12]
+            & xmm2[13] & xmm2[14] & xmm2[15];
+
+        return result;
 }
 
 static bool start_is_match(RegexNode *node, const char *orig, const char *cur,
@@ -270,7 +298,7 @@ static bool any_is_match(RegexNode *node, const char *orig, const char *cur,
 			 const char **next)
 {
 	if (*cur) {
-		*next = utf8_next(cur);
+		*next = cur + 1;
 		return true;
 	}
 
@@ -314,8 +342,8 @@ static bool class_is_match(RegexNode *node, const char *orig, const char *cur,
 	if (*cur == 0)
 		return false;
 
-	const uint32_t chr = utf8_peek(cur);
-	*next = utf8_next(cur);
+	const uint32_t chr = *cur;
+	*next = cur + 1;
 
 	bool found = false;
 	for (RangeNode *range = cls->ranges; range != NULL;
@@ -390,8 +418,8 @@ static size_t calc_compiled_escaped_len(const char *s, const char **leftover)
 	if (*s == 0)
 		throw_compile_exception(MREGEXP_UNEXPECTED_EOL, s);
 
-	const uint32_t chr = utf8_peek(s);
-	*leftover = utf8_next(s);
+	const uint32_t chr = *s;
+	*leftover = s + 1;
 
 	switch (chr) {
 	case 's':
@@ -426,19 +454,19 @@ static const size_t calc_compiled_class_len(const char *s,
 	size_t ret = 1;
 
 	while (*s && *s != ']') {
-		uint32_t chr = utf8_peek(s);
-		s = utf8_next(s);
+		uint32_t chr = *s;
+		s = s + 1;
 		if (chr == '\\') {
-			s = utf8_next(s);
+			s = s + 1;
 		}
 
 		if (*s == '-' && s[1] != ']') {
 			s++;
-			chr = utf8_peek(s);
-			s = utf8_next(s);
+			chr = *s;
+			s = s + 1;
 
 			if (chr == '\\')
-				s = utf8_next(s);
+				s = s + 1;
 		}
 
 		ret++;
@@ -461,9 +489,9 @@ static const size_t calc_compiled_len(const char *s)
 	if (*s == 0) {
 		return 1;
 	} else {
-		const uint32_t chr = utf8_peek(s);
+		const uint32_t chr = *s;
 		size_t ret = 0;
-		s = utf8_next(s);
+		s = s + 1;
 
 		switch (chr) {
 		case '{': {
@@ -526,12 +554,12 @@ static inline size_t parse_digit(const char *s, const char **leftover)
 	size_t ret = 0;
 
 	while (*s) {
-		uint32_t chr = utf8_peek(s);
+		uint32_t chr = *s;
 
 		if (is_digit(chr)) {
 			ret *= 10;
 			ret += chr - '0';
-			s = utf8_next(s);
+			s = s + 1;
 		} else {
 			break;
 		}
@@ -549,7 +577,7 @@ static void parse_complex_quant(const char *re, const char **leftover,
 	if (*re == 0)
 		throw_compile_exception(MREGEXP_INVALID_COMPLEX_QUANT, re);
 
-	uint32_t tmp = utf8_peek(re);
+	uint32_t tmp = *re;
 	size_t min = 0, max = __SIZE_MAX__;
 
 	if (is_digit(tmp)) {
@@ -558,10 +586,10 @@ static void parse_complex_quant(const char *re, const char **leftover,
 		throw_compile_exception(MREGEXP_INVALID_COMPLEX_QUANT, re);
 	}
 
-	tmp = utf8_peek(re);
+	tmp = *re;
 
 	if (tmp == ',') {
-		re = utf8_next(re);
+		re = re + 1;
 		if (is_digit(utf8_peek(re)))
 			max = parse_digit(re, &re);
 		else
@@ -570,7 +598,7 @@ static void parse_complex_quant(const char *re, const char **leftover,
 		max = min;
 	}
 
-	tmp = utf8_peek(re);
+	tmp = *re;
 	if (tmp == '}') {
 		*leftover = re + 1;
 		*min_p = min;
@@ -625,8 +653,8 @@ static RegexNode *compile_next_escaped(const char *re, const char **leftover,
 	if (*re == 0)
 		throw_compile_exception(MREGEXP_UNEXPECTED_EOL, re);
 
-	const uint32_t chr = utf8_peek(re);
-	*leftover = utf8_next(re);
+	const uint32_t chr = *re;
+	*leftover = re + 1;
 	RegexNode *ret = cur + 1;
 
 	switch (chr) {
@@ -705,21 +733,21 @@ static RegexNode *compile_next_complex_class(const char *re,
 	while (*re && *re != ']') {
 		uint32_t first = 0, last = 0;
 
-		first = utf8_peek(re);
-		re = utf8_next(re);
+		first = *re;
+		re = re + 1;
 		if (first == '\\') {
 			if (*re == 0)
 				throw_compile_exception(
 					MREGEXP_INVALID_COMPLEX_CLASS, re);
 
-			first = utf8_peek(re);
-			re = utf8_next(re);
+			first = *re;
+			re = re + 1;
 		}
 
 		if (*re == '-' && re[1] != ']' && re[1]) {
 			re++;
-			last = utf8_peek(re);
-			re = utf8_next(re);
+			last = *re;
+			re = re + 1;
 
 			if (last == '\\') {
 				if (*re == 0)
@@ -727,8 +755,8 @@ static RegexNode *compile_next_complex_class(const char *re,
 						MREGEXP_INVALID_COMPLEX_CLASS,
 						re);
 
-				last = utf8_peek(re);
-				re = utf8_next(re);
+				last = *re;
+				re = re + 1;
 			}
 		} else {
 			last = first;
@@ -824,8 +852,8 @@ static RegexNode *compile_next(const char *re, const char **leftover,
 	if (*re == 0)
 		return NULL;
 
-	const uint32_t chr = utf8_peek(re);
-	re = utf8_next(re);
+	const uint32_t chr = *re;
+	re = re + 1;
 	RegexNode *next = cur + 1;
 
 	switch (chr) {
@@ -919,6 +947,7 @@ struct MRegexp {
 	RegexNode *nodes;
 };
 
+
 MRegexp *mregexp_compile(const char *re)
 {
 	clear_compile_exception();
@@ -978,7 +1007,7 @@ bool mregexp_match(MRegexp *re, const char *s, MRegexpMatch *m)
 	m->match_begin = __SIZE_MAX__;
 	m->match_end = __SIZE_MAX__;
 
-	for (const char *tmp_s = s; *tmp_s; tmp_s = utf8_next(tmp_s)) {
+	for (const char *tmp_s = s; *tmp_s; tmp_s = tmp_s + 1)  {
             const char *next = NULL;
             if (is_match(re->nodes, s, tmp_s, &next)) {
                     m->match_begin = tmp_s - s;
